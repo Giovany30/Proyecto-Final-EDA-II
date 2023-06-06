@@ -6,11 +6,135 @@
 #include <string.h>
 #include "Refugio.h"
 
+static void Productos_Set(Product p[]){
+    p[0].barcode = 6;
+    p[0].price = 35;
+    strcpy(p[0].name, "Croquetas chicas");
+    p[1].barcode = 7;
+    p[1].price = 85;
+    strcpy(p[1].name, "Croquetas medianas");
+    p[2].barcode = 1;
+    p[2].price = 185;
+    strcpy(p[2].name, "Croquetas grandes");
+    p[3].barcode = 6;
+    p[3].price = 35;
+    strcpy(p[3].name, "Croquetas gigantes");
+    p[4].barcode = 9;
+    p[4].price = 225;
+    strcpy(p[4].name, "Croquetas de gato grandes");
+    p[5].barcode = 8;
+    p[5].price = 125;
+    strcpy(p[5].name, "Croquetas de gato medianas");
+    p[6].barcode = 5;
+    p[6].price = 65;
+    strcpy(p[6].name, "Croquetas de gato chicas");
+    p[7].barcode = 15;
+    p[7].price = 18;
+    strcpy(p[7].name, "Bolsa de semillas");
+    p[8].barcode = 20;
+    p[8].price = 40;
+    strcpy(p[8].name, "Comida de peces chica");
+    p[9].barcode = 19;
+    p[9].price = 80;
+    strcpy(p[9].name, "Comida de peces mediana");
+    p[10].barcode = 12;
+    p[10].price = 130;
+    strcpy(p[10].name, "Comida de peces grande");
+}
+
+static void Product_Print(Product p[]){
+    for(int i = 0; i < 11; ++i){
+        printf("\nBarcode: %d.  Price: %d.  Name: %s.", p[i].barcode, p[i].price, p[i].name);
+    }
+}
+
+void Product_Swap(Product* p1, Product* p2){
+    Product tmp;
+    tmp.barcode = p1->barcode;
+    tmp.price = p1->price;
+    strcpy(tmp.name, p1->name);
+
+    p1->barcode = p2->barcode;
+    p1->price = p2->price;
+    strcpy(p1->name, p2->name);
+
+    p2->barcode = tmp.barcode;
+    p2->price = tmp.price;
+    strcpy(p2->name, tmp.name);
+}
+
+static void Product_QuickSortByBarcode(Product p[], int first, int last){
+    int x0 = first;
+    int x1 = last;
+    int mid = (first + last) / 2;
+    int piv = p[mid].barcode;  //Nuestro pivote será el elemento de en medio
+
+    while(x0 <= x1){
+        
+        while(p[x0].barcode < piv){
+            ++x0;
+        }
+        while(p[x1].barcode > piv){
+            --x1;
+        }
+        if(x0 <= x1){
+            Product_Swap(&p[x0], &p[x1]);
+            ++x0;
+            --x1;
+        }
+    }
+    
+    if(first < x1){
+        Product_QuickSortByBarcode(p, first, x1);
+    }
+    if(x0 < last){
+        Product_QuickSortByBarcode(p, x0, last);
+    }
+}
+
+static void Product_QuickSortByPrice(Product p[], int first, int last){
+    int x0 = first;
+    int x1 = last;
+    int mid = (first + last) / 2;
+    int piv = p[mid].price;  //Nuestro pivote será el elemento de en medio
+
+    while(x0 <= x1){
+        
+        while(p[x0].price < piv){
+            ++x0;
+        }
+        while(p[x1].price > piv){
+            --x1;
+        }
+        if(x0 <= x1){
+            Product_Swap(&p[x0], &p[x1]);
+            ++x0;
+            --x1;
+        }
+    }
+    
+    if(first < x1){
+        Product_QuickSortByPrice(p, first, x1);
+    }
+    if(x0 < last){
+        Product_QuickSortByPrice(p, x0, last);
+    }
+}
+
+static void Product_Sort(Refugio* r){
+    char opcionStr[10];
+    int option;
+    printf("\nEliga el modo de muestro [ 1)CÓDIGO DE BARRAS, 2)PRECIO ]: ");
+    fgets(opcionStr, sizeof(opcionStr), stdin);
+    option = atoi(opcionStr);
+
+    if(option == 1) Product_QuickSortByBarcode(r->inventory, 0, 11);
+    else if(option == 2) Product_QuickSortByPrice(r->inventory, 0, 11);
+}
+
 static void User_Registro(User* user){
     printf("\nRegistro del usuario.");
     printf("\nIngrese su nombre completo: ");
-    //int c;
-    //while ((c = getchar()) != '\n' && c != EOF) {}
     fgets(user->name, sizeof(user->name), stdin);
     printf("Ingresa su fecha de nacimiento [DD-MM-YYYY]: ");
     fgets(user->date, sizeof(user->date), stdin);
@@ -39,8 +163,6 @@ void User_QuickSortByID(User users[], int first, int last){
     int x1 = last;
     int mid = (first + last) / 2;
     int piv = users[mid].id;  //Nuestro pivote será el elemento de en medio
-
-	//fprintf(stderr, "\nx0 = %zu, x1 = %zu, mid = %zu\n", x0, x1, mid);
 
     while(x0 <= x1){
         while(users[x0].id < piv){
@@ -97,8 +219,21 @@ static void Animal_Registro(Animal* a){
     printf("\nRegistro de la mascota.");
     printf("\nIngrese la especie del animal: ");
     fgets(a->especie, sizeof(a->especie), stdin);
+
+    size_t len = strlen(a->especie);
+    if (len > 0 && a->especie[len - 1] == '\n') {
+        a->especie[len - 1] = '\0'; // Reemplazar '\n' por el terminador nulo '\0'
+    }
+
     printf("Ingrese el nombre completo: ");
     fgets(a->name, sizeof(a->name), stdin);
+
+    // Eliminar el carácter de nueva línea si está presente
+    len = strlen(a->name);
+    if (len > 0 && a->name[len - 1] == '\n') {
+        a->name[len - 1] = '\0'; // Reemplazar '\n' por el terminador nulo '\0'
+    }
+
     printf("Ingrese el tamaño del animal [ 1)CHICO, 2)MEDIANO, 3)GRANDE ]: ");
     fgets(opcionStr, sizeof(opcionStr), stdin);
     option = atoi(opcionStr);
@@ -107,11 +242,19 @@ static void Animal_Registro(Animal* a){
     else if(option == 3) a->t = GRANDE;
     printf("Ingresa la fecha de nacimiento [DD-MM-YYYY]: ");
     fgets(a->date, sizeof(a->date), stdin);
+
+    len = strlen(a->date);
+    if (len > 0 && a->date[len - 1] == '\n') {
+        a->date[len - 1] = '\0'; 
+    }
+
     a->id = rand() % 9001 + 1000;
 }
 
 Refugio* Refugio_New(){
     Refugio* r = (Refugio*) malloc(sizeof(Refugio));
+    r->users = malloc(sizeof(User) * 50); 
+    r->animals = malloc(sizeof(Animal) * 100);
     r->cursor_u = 0;
     r->cursor_a = 0;
 
@@ -127,6 +270,38 @@ bool Refugio_Search(Refugio* r, int id, User* u){
     else {
         return true;
     }
+}
+
+static void Animal_Serialize(Refugio* r, char* f_name){
+    
+    Animal* a = r->animals;
+    FILE* json_output = fopen(f_name, "w");
+    
+    if(!json_output){
+        printf("Error abriendo archivo\n");
+        exit(1);
+    }
+    
+    fprintf(json_output, "{\n");
+
+    fprintf(json_output, "\"animales\": [\n");
+    for(size_t i = 0; i < r->cursor_a; ++i){
+        if(i > 0) fprintf(json_output, ",\n");
+        fprintf(json_output, "{ ");
+        fprintf(json_output, "\"name\": \"%s\", \"nacimiento\": \"%s\", \"especie\": \"%s\", \"tamaño\": %d, \"id\": %ld",
+            a[i].name,
+            a[i].date,
+            a[i].especie,
+            a[i].t,
+            a[i].id);
+        fprintf(json_output, " }");
+    }
+
+    fprintf(json_output, "\n]");
+    //fprintf(json_output, ",\n"); //descomentar si todavÃ­a hay mÃ¡s campos
+
+    fprintf(json_output, "\n}");
+    fclose(json_output);
 }
 
 void Refugio_Registro(Refugio* r){
@@ -167,48 +342,7 @@ void Refugio_Registro(Refugio* r){
         r->cursor_a += 1;
         r->cursor_u += 1;
     }
-}
-
-static void Productos(Product p[]){
-    p[0].barcode = 6;
-    p[0].price = 35;
-    strcpy(p[0].name, "Croquetas chicas");
-    p[1].barcode = 7;
-    p[1].price = 85;
-    strcpy(p[1].name, "Croquetas medianas");
-    p[2].barcode = 1;
-    p[2].price = 185;
-    strcpy(p[2].name, "Croquetas grandes");
-    p[3].barcode = 6;
-    p[3].price = 35;
-    strcpy(p[3].name, "Croquetas gigantes");
-    p[4].barcode = 9;
-    p[4].price = 225;
-    strcpy(p[4].name, "Croquetas de gato grandes");
-    p[5].barcode = 8;
-    p[5].price = 125;
-    strcpy(p[5].name, "Croquetas de gato medianas");
-    p[6].barcode = 5;
-    p[6].price = 65;
-    strcpy(p[6].name, "Croquetas de gato chicas");
-    p[7].barcode = 15;
-    p[7].price = 18;
-    strcpy(p[7].name, "Bolsa de semillas");
-    p[8].barcode = 20;
-    p[8].price = 40;
-    strcpy(p[8].name, "Comida de peces chica");
-    p[9].barcode = 19;
-    p[9].price = 80;
-    strcpy(p[9].name, "Comida de peces mediana");
-    p[10].barcode = 12;
-    p[10].price = 130;
-    strcpy(p[10].name, "Comida de peces grande");
-}
-
-static void Product_Print(Product p[]){
-    for(int i = 0; i < 11; ++i){
-        printf("\nName: %s. Barcode: %d. Price: %d", p[i].name, p[i].barcode, p[i].price);
-    }
+    Animal_Serialize(r, "animales.json");
 }
 
 void Refugio_Delete(Refugio **r){
@@ -216,6 +350,8 @@ void Refugio_Delete(Refugio **r){
 
     Refugio *refugio = *r; // para simplificar la notación
 
+    free(refugio->animals);
+    free(refugio->users);
     free(refugio);
 	*r = NULL;
 }
@@ -232,9 +368,9 @@ static void Refugio_Options(Refugio* r, int option){
             Refugio_Registro(r);
             break;
         case 4:
-            Product p[11];
-            Productos(p);
-            Product_Print(p);
+            Productos_Set(r->inventory);
+            Product_Sort(r);
+            Product_Print(r->inventory);
             break;
         case 5:
             Refugio_Delete(&r);

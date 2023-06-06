@@ -3,7 +3,10 @@
 
 #include <stdio.h>
 #include <time.h>
+#include <stdlib.h>
 #include <stdbool.h>
+#include <assert.h>
+#include <string.h>
 
 typedef struct {
     int barcode;
@@ -44,6 +47,7 @@ typedef struct {
     Animal* animals; //Es la lista de mascotas registradas
     int cursor_u;    //Nos indica la posición en la que insertaremos el último usuario
     int cursor_a;    //Nos indica la posición en la que insertaremos la última mascota
+    Product inventory[11];
 } Refugio;
 
 
