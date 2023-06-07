@@ -41,6 +41,9 @@
 
 
 int main(){
+	//Refugio* r = Refugio_New();
+	//Animal* a = Animal_Deserialize("animales.json");
+	//Refugio_Load(r, &a);
 	Refugio* r = Refugio_New();
 	Refugio_Menu(r);
 	return 0;

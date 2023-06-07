@@ -5,7 +5,43 @@
 #include <assert.h>
 #include <string.h>
 #include "cJSON.h"
+#include <omp.h>
 #include "Refugio.h"
+
+static Sucursal Sucursales_Get(int id){
+    Sucursal s;
+    strcpy(s.estado, "CDMX");
+    s.len = 0;
+    if(id == 1){
+        s.id = 1;
+        strncpy(s.ubication, "Copilco", 32);
+    }
+    else if(id == 2){
+        s.id = 2;
+        strncpy(s.ubication, "Universidad", 32);
+    }
+    else if(id == 3){
+        s.id = 3;
+        strncpy(s.ubication, "Coyoacán", 32);
+    }
+    else if(id == 4){
+        s.id = 4;
+        strncpy(s.ubication, "Indios Verdes", 32);
+    }
+    return s;
+}
+
+static void Sucursales_Set(Refugio* r){
+    Graph* g = r->sucursales; //Para simplificar la notación
+    Graph_AddVertex(g, 1); 
+    Graph_AddVertex(g, 2);
+    Graph_AddVertex(g, 3);
+    Graph_AddVertex(g, 4);
+
+    Graph_AddEdge(g, 1, 4);
+    Graph_AddEdge(g, 2, 4);
+    Graph_AddEdge(g, 1, 3);
+}
 
 static void Productos_Set(Product p[]){
     p[0].barcode = 6;
@@ -139,6 +175,7 @@ static void User_Registro(User* user){
     fgets(user->name, sizeof(user->name), stdin);
     printf("Ingresa su fecha de nacimiento [DD-MM-YYYY]: ");
     fgets(user->date, sizeof(user->date), stdin);
+    srand(time(NULL));
     user->id = rand() % 9001 + 1000;
 }
 
@@ -155,7 +192,7 @@ static void User_Swap(User* u1, User* u2){
     strcpy(u2->date, tmp.date);
     strcpy(u2->name, tmp.name);
     u2->id = tmp.id; 
-    fprintf(stderr, "\nu1 = %s, id = %ld, u2 = %s, id = %ld\n", u1->name, u1->id, u2->name, u2->id);
+    //fprintf(stderr, "\nu1 = %s, id = %ld, u2 = %s, id = %ld\n", u1->name, u1->id, u2->name, u2->id);
 }
 
 //Revisado
@@ -187,6 +224,7 @@ void User_QuickSortByID(User users[], int first, int last){
     }
 }
 
+
 static User User_BusquedaBinariaRecByID(User users[], int inf, int sup, int key){
 	int centro = ((sup + inf)/2);
     User centinela = 
@@ -214,14 +252,21 @@ static User User_BusquedaBinariaRecByID(User users[], int inf, int sup, int key)
     return centinela;
 }
 
+
 static void Animal_Registro(Animal* a){
     char opcionStr[10];
     int option;
     printf("\nRegistro de la mascota.");
+
+    size_t len = strlen(a->especie);
+    if (len > 0 && a->especie[len - 1] == '\n') {
+        a->especie[len - 1] = '\0'; // Reemplazar '\n' por el terminador nulo '\0'
+    }
+
     printf("\nIngrese la especie del animal: ");
     fgets(a->especie, sizeof(a->especie), stdin);
 
-    size_t len = strlen(a->especie);
+    len = strlen(a->especie);
     if (len > 0 && a->especie[len - 1] == '\n') {
         a->especie[len - 1] = '\0'; // Reemplazar '\n' por el terminador nulo '\0'
     }
@@ -249,6 +294,7 @@ static void Animal_Registro(Animal* a){
         a->date[len - 1] = '\0'; 
     }
 
+    srand(time(NULL));
     a->id = rand() % 9001 + 1000;
 }
 
@@ -258,6 +304,8 @@ Refugio* Refugio_New(){
     r->animals = malloc(sizeof(Animal) * 100);
     r->cursor_u = 0;
     r->cursor_a = 0;
+
+    r->sucursales = Graph_New(10, eGraphType_UNDIRECTED);
 
     return r;
 }
@@ -349,10 +397,14 @@ Animal* Animal_Deserialize(char* f_name){
     //Obtener los datos de cada campo
     for(int i = 0; i < num_animales; i++){
         cJSON* animal_obj = cJSON_GetArrayItem(animales_array, i);
+        strncpy(a[i].name, cJSON_GetObjectItem(animal_obj, "name")->valuestring, sizeof(a[i].name) - 1);
+        a[i].name[sizeof(a[i].name) - 1] = '\0'; // Asegurar que el array de caracteres está terminado correctamente
 
-        strcpy(a[i].name,    cJSON_GetObjectItem(animal_obj, "name")->valuestring);
-        strcpy(a[i].especie, cJSON_GetObjectItem(animal_obj, "especie")->valuestring);
-        strcpy(a[i].date,    cJSON_GetObjectItem(animal_obj, "nacimiento")->valuestring);
+        strncpy(a[i].especie, cJSON_GetObjectItem(animal_obj, "especie")->valuestring, sizeof(a[i].especie) - 1);
+        a[i].especie[sizeof(a[i].especie) - 1] = '\0'; // Asegurar que el array de caracteres está terminado correctamente
+
+        strncpy(a[i].date, cJSON_GetObjectItem(animal_obj, "nacimiento")->valuestring, sizeof(a[i].date) - 1);
+        a[i].date[sizeof(a[i].date) - 1] = '\0'; // Asegurar que el array de caracteres está terminado correctamente
 
         if(cJSON_GetObjectItem(animal_obj, "tamaño")->valueint == 1){
             a[i].t = CHICO;
@@ -364,17 +416,30 @@ Animal* Animal_Deserialize(char* f_name){
             a[i].t = GRANDE;
         }
 
-        
         a[i].id = cJSON_GetObjectItem(animal_obj, "id")->valueint;
 
-        printf("\nNAME: %s. ESPECIE: %s. FECHA: %s. ID: %ld", a[i].name, a[i].especie, a[i].date, a[i].id);
     }
-    a[num_animales+1].id = -1;
+    a[num_animales].id = -1;
 
     cJSON_Delete(root);
     free(json_data);
 
     return a;
+}
+
+void Refugio_Load(Refugio* r, Animal** a){
+    int i = 0;
+    while((*a)[i].id != -1){
+        strncpy(r->animals[i].name, (*a)[i].name, sizeof((*a)[i].name) - 1);
+        strncpy(r->animals[i].especie, (*a)[i].especie, sizeof((*a)[i].especie) - 1);
+        strncpy(r->animals[i].date, (*a)[i].date, sizeof((*a)[i].date) - 1);
+        r->animals[i].id = (*a)[i].id;
+        r->animals[i].t = (*a)[i].t;
+        r->cursor_a += 1;
+        ++i;
+    }
+    free(*a);
+    *a = NULL;
 }
 
 void Refugio_Registro(Refugio* r){
@@ -423,19 +488,67 @@ void Refugio_Delete(Refugio **r){
 
     Refugio *refugio = *r; // para simplificar la notación
 
+    Graph_Delete(&(refugio->sucursales));
+
     free(refugio->animals);
     free(refugio->users);
     free(refugio);
 	*r = NULL;
 }
 
+static void Animal_Print(Refugio* r){
+    for(int i = 0; i < r->cursor_a; ++i){
+        printf("\nNAME: %s.", r->animals[i].name);
+        printf(" ESPECIE: %s.", r->animals[i].especie);
+        printf(" NACIMIENTO: %s.", r->animals[i].date);
+        printf(" ID: %ld", r->animals[i].id);
+    }
+}
+
+static void Refugio_Disponibilidad(Refugio* r){
+    printf("\nLas mascotas disponibles son:");
+    Animal_Print(r);
+
+    printf("\nLas sucursales disponibles son:");
+    bfs(r->sucursales, 1);
+    for(int i = 0; i < Graph_GetLen(r->sucursales); ++i ){
+		Vertex* v = Graph_GetVertexByIndex(r->sucursales, i );
+		printf( "\n[POS = %d] (Sucursal ID = %d) -- Distancia por recorrer: %d", 
+ 			i,
+            Vertex_GetData( v ),
+            Vertex_GetDistance( v ) );
+	}
+
+    char opcionStr[10];
+    int option;
+    printf("\nIngrese el ID (válido) de la mascota que desea: ");
+    fgets(opcionStr, sizeof(opcionStr), stdin);
+    option = atoi(opcionStr);
+    Animal a;
+    for(int i = 0; i < r->cursor_a; ++i){
+        if(r->animals[i].id == option){
+            strncpy(a.name, r->animals[i].name, 32);
+        }
+    }
+    printf("\nIngrese el ID de la sucursal que desea. ");
+    printf("Sugerencia, considere la más cercana: ");
+    fgets(opcionStr, sizeof(opcionStr), stdin);
+    option = atoi(opcionStr);
+    Sucursal s = Sucursales_Get(option);
+
+    printf("\nLa mascota %s será adoptada en la sucursal %s", a.name, s.ubication);
+}
+
 static void Refugio_Options(Refugio* r, int option){
     switch (option){
         case 1:
-            printf("\nFALTA POR REALIZAR");
+            Sucursales_Set(r);
+            Refugio_Disponibilidad(r);
             break;
         case 2:
-            Animal_Deserialize("animales.json");
+            Animal* a = Animal_Deserialize("animales.json");
+            Refugio_Load(r, &a);
+            printf("\nArchivo cargado");
             break;
         case 3:
             Refugio_Registro(r);
@@ -460,7 +573,7 @@ void Refugio_Menu(Refugio* r){
     do {
         printf("\nBienvenido, cómo podemos ayudarle:");
         printf("\n  1) Buscar una mascota para adoptar");
-        printf("\n  2) Ver mascotas disponibles");
+        printf("\n  2) Cargar archivo de mascotas disponibles");
         printf("\n  3) Quiero donar una mascota");
         printf("\n  4) Mostrar productos");
         printf("\n  5) Salir");

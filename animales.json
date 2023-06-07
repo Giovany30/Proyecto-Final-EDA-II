@@ -1,6 +1,7 @@
 {
 "animales": [
-{ "name": "Estefano Kevin", "nacimiento": "15-09-2001", "especie": "Cocodrilo", "tamaño": 1, "id": 1465 },
-{ "name": "Julian Alvarez", "nacimiento": "09-09-2001", "especie": "Pez", "tamaño": 2, "id": 9498 }
+{ "name": "Esteban Moctezuma", "nacimiento": "05-07-200", "especie": "3", "tamaño": 1, "id": 4000 },
+{ "name": "Jose", "nacimiento": "07-08-201", "especie": "9", "tamaño": 1, "id": 4833 },
+{ "name": "Martin K", "nacimiento": "01-12-202", "especie": "Tucan", "tamaño": 0, "id": 5048 }
 ]
 }

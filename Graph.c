@@ -375,7 +375,7 @@ void bfs(Graph *g, int start){
 		int val = Queue_Dequeue(q);
 		Vertex *v = Graph_GetVertexByKey(g, val);
 
-		fprintf(stderr, "Processing vertex: %d: ", Vertex_GetData(v));
+		//fprintf(stderr, "Processing vertex: %d: ", Vertex_GetData(v));
 
 		for (Vertex_Start(v); !Vertex_End(v); Vertex_Next(v)){
 			Vertex *w = Graph_GetVertexByIndex(g, Vertex_GetNeighborIndex(v).index);
@@ -390,7 +390,7 @@ void bfs(Graph *g, int start){
 				Queue_Enqueue(q, Vertex_GetData(w));
 			}
 		}
-		fprintf(stderr, "\n");
+		//fprintf(stderr, "\n");
 
 		Vertex_SetColor(v, BLACK);
 	}
