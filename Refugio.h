@@ -58,4 +58,7 @@ void Refugio_Delete(Refugio **r);
 void Refugio_Menu(Refugio* r);
 void User_QuickSortByID(User users[], int first, int last);
 
+Animal* Animal_Deserialize(char* f_name);
+
+
 #endif

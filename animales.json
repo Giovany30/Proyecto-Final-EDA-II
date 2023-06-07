@@ -1,0 +1,6 @@
+{
+"animales": [
+{ "name": "Estefano Kevin", "nacimiento": "15-09-2001", "especie": "Cocodrilo", "tamaño": 1, "id": 1465 },
+{ "name": "Julian Alvarez", "nacimiento": "09-09-2001", "especie": "Pez", "tamaño": 2, "id": 9498 }
+]
+}

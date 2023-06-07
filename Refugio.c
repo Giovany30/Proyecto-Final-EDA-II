@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <string.h>
+#include "cJSON.h"
 #include "Refugio.h"
 
 static void Productos_Set(Product p[]){
@@ -304,6 +305,78 @@ static void Animal_Serialize(Refugio* r, char* f_name){
     fclose(json_output);
 }
 
+Animal* Animal_Deserialize(char* f_name){
+    FILE* file = fopen(f_name, "r");
+    
+    if(!file){
+        printf("Error abriendo archivo\n");
+        exit(1);
+    }
+
+    // Obtener el tamaño del archivo
+    fseek(file, 0, SEEK_END);
+    long file_size = ftell(file);
+    rewind(file);
+
+    // Leer el contenido del archivo en una cadena
+    char* json_data = (char*)malloc(file_size + 1);
+    fread(json_data, 1, file_size, file);
+    json_data[file_size] = '\0';
+
+    // Analizar la cadena 
+    cJSON* root = cJSON_Parse(json_data);
+    if (root == NULL) {
+        printf("Error al analizar el archivo JSON.\n");
+        free(json_data);
+        fclose(file);
+        exit(1);
+    }
+
+    // Obtener el arreglo "animales"
+    cJSON* animales_array = cJSON_GetObjectItem(root, "animales");
+    if (animales_array == NULL) {
+        printf("No se pudo obtener el arreglo 'animales' del JSON.\n");
+        cJSON_Delete(root);
+        free(json_data);
+        fclose(file);
+        exit(1);
+    }
+
+    // Obtener el número de elementos en el arreglo
+    int num_animales = cJSON_GetArraySize(animales_array);
+    Animal* a = (Animal *)malloc(num_animales * sizeof(Animal));
+
+    //Obtener los datos de cada campo
+    for(int i = 0; i < num_animales; i++){
+        cJSON* animal_obj = cJSON_GetArrayItem(animales_array, i);
+
+        strcpy(a[i].name,    cJSON_GetObjectItem(animal_obj, "name")->valuestring);
+        strcpy(a[i].especie, cJSON_GetObjectItem(animal_obj, "especie")->valuestring);
+        strcpy(a[i].date,    cJSON_GetObjectItem(animal_obj, "nacimiento")->valuestring);
+
+        if(cJSON_GetObjectItem(animal_obj, "tamaño")->valueint == 1){
+            a[i].t = CHICO;
+        }
+        else if(cJSON_GetObjectItem(animal_obj, "tamaño")->valueint == 2){
+            a[i].t = MEDIANO;
+        }
+        else if(cJSON_GetObjectItem(animal_obj, "tamaño")->valueint == 3){
+            a[i].t = GRANDE;
+        }
+
+        
+        a[i].id = cJSON_GetObjectItem(animal_obj, "id")->valueint;
+
+        printf("\nNAME: %s. ESPECIE: %s. FECHA: %s. ID: %ld", a[i].name, a[i].especie, a[i].date, a[i].id);
+    }
+    a[num_animales+1].id = -1;
+
+    cJSON_Delete(root);
+    free(json_data);
+
+    return a;
+}
+
 void Refugio_Registro(Refugio* r){
     char opcionStr[10];
     int option;
@@ -362,7 +435,7 @@ static void Refugio_Options(Refugio* r, int option){
             printf("\nFALTA POR REALIZAR");
             break;
         case 2:
-            printf("\nFALTA POR REALIZAR");
+            Animal_Deserialize("animales.json");
             break;
         case 3:
             Refugio_Registro(r);
